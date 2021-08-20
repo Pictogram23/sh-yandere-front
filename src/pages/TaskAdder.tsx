@@ -1,5 +1,7 @@
+import axios from 'axios';
 import React, { useState } from 'react';
-import { TaskItemStruct } from './_declarations';
+import { PostTaskCreateStruct, TaskItemStruct } from '../_types';
+import { tmpUserId } from '../_constParams';
 
 type Props = {
   tasks: TaskItemStruct[];
@@ -7,29 +9,67 @@ type Props = {
 };
 
 const TaskAdder: React.FC<Props> = ({ tasks, setTasks }) => {
-  const [inputText, setInputText] = useState('');
+  const [inputName, setInputName] = useState('');
+  const [inputDesc, setInputDesc] = useState('');
+  const [taskId, setTaskId] = useState('');
 
   const onSubmitNewTask = (e: React.FormEvent<HTMLFormElement | HTMLButtonElement>) => {
     e.preventDefault();
-    if (!inputText) return;
+    if (!(inputName && inputDesc)) return;
 
-    const newTask: TaskItemStruct = {
-      id: new Date().getTime(),
-      name: inputText,
-      is_finished: false,
-      is_removed: false,
+    const postData: PostTaskCreateStruct = {
+      name: inputName,
+      description: inputDesc,
+      is_done: false,
+      user_id: tmpUserId,
+      status: 'exist',
     };
 
+    const requestOptions = {
+      data: postData,
+      headers: { 'Content-Type': 'application/json', Origin: 'http://localhost' },
+    };
+
+    axios
+      .post('http://localhost:8080/task/create', requestOptions)
+      .then((response) => {
+        setTaskId(response.data.task_id);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+
+    const newTask: TaskItemStruct = {
+      id: taskId,
+      name: inputName,
+      description: inputDesc,
+      is_done: false,
+      status: postData.status,
+    };
+
+    console.log(newTask);
+
     setTasks([newTask, ...tasks]);
-    setInputText('');
+    setInputName('');
+    setInputDesc('');
   };
 
   return (
     <>
-      {/* 後にPOST方式でのデータ送信プロパティ追加 */}
       <form onSubmit={(e) => onSubmitNewTask(e)}>
-        <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} />
-        <button type="submit" onSubmit={(e) => onSubmitNewTask(e)}>
+        <input
+          type='text'
+          value={inputName}
+          placeholder='タスク名'
+          onChange={(e) => setInputName(e.target.value)}
+        />
+        <input
+          type='text'
+          value={inputDesc}
+          placeholder='詳細'
+          onChange={(e) => setInputDesc(e.target.value)}
+        />
+        <button type='submit' onSubmit={(e) => onSubmitNewTask(e)}>
           追加
         </button>
       </form>
